@@ -29,30 +29,30 @@ parser.add_argument('--weight', action='store_true', default=False, help='Using 
 
 # model part
 parser.add_argument('--sparse', action='store_true', default=False, help='GNN with sparse version or not.')
-parser.add_argument('--GNN', type=int, default=3, help="The layer of encoder.")
+parser.add_argument('--GNN', type=int, default=3, help="The layer of encoder.") #2
 parser.add_argument('--feature_dim', type=int, default=128, help='Initialize network embedding dimension.')
 parser.add_argument('--hidden_dim', type=int, default=128, help='GNN network hidden embedding dimension.')
 parser.add_argument('--dropout', type=float, default=0.3, help='GNN layer dropout rate.')
 parser.add_argument('--optim', choices=['sgd', 'adagrad', 'adam', 'adamax'], default='adam',
                     help='Optimizer: sgd, adagrad, adam or adamax.')
-parser.add_argument('--lr', type=float, default=0.0001, help='Applies to sgd and adagrad.')
+parser.add_argument('--lr', type=float, default=0.0005, help='Applies to sgd and adagrad.') #0.001
 parser.add_argument('--lr_decay', type=float, default=0.9, help='Learning rate decay rate.')
 parser.add_argument('--weight_decay', type=float, default=5e-4, help='Weight decay (L2 loss on parameters).')
 parser.add_argument('--decay_epoch', type=int, default=5, help='Decay learning rate after this epoch.')
 parser.add_argument('--leakey', type=float, default=0.1)
 parser.add_argument('--cpu', action='store_true', help='Ignore CUDA.')
 parser.add_argument('--cuda', type=bool, default=torch.cuda.is_available())
-parser.add_argument('--margin', type=float, default=0.3)
-parser.add_argument('--lambda', type=float, default=0.1)
+parser.add_argument('--margin', type=float, default=0.2) #0.15
+parser.add_argument('--lambda', type=float, default=0.1) #0.2
 parser.add_argument('--negative', type=int, default=1)
 parser.add_argument('--DGI', action='store_false', default=True)
 parser.add_argument('--attention', action='store_false', default=True, help='Using attention in sub-graph?')
 parser.add_argument('--struct', action='store_false', default=True, help='Using struct corruption in graph?')
-parser.add_argument('--struct_rate', type=float, default=0.001)
+parser.add_argument('--struct_rate', type=float, default=0.005) #0.005
 # train part
-parser.add_argument('--num_epoch', type=int, default=20000, help='Number of total training epochs.')
-parser.add_argument('--min_neighbor', type=int, default=100, help='Number of max neighbor per node')
-parser.add_argument('--batch_size', type=int, default=128, help='Training batch size.')
+parser.add_argument('--num_epoch', type=int, default=200, help='Number of total training epochs.') #300
+parser.add_argument('--min_neighbor', type=int, default=200, help='Number of max neighbor per node') #200
+parser.add_argument('--batch_size', type=int, default=1028*10, help='Training batch size.')
 parser.add_argument('--log_step', type=int, default=200, help='Print log every k steps.')
 parser.add_argument('--log', type=str, default='logs.txt', help='Write training log to file.')
 parser.add_argument('--save_epoch', type=int, default=100, help='Save model checkpoints every k epochs.')
@@ -176,8 +176,8 @@ for epoch in range(1, opt['num_epoch'] + 1):
     print("batch_dgi_loss: ", sum(trainer.epoch_dgi_loss) / len(trainer.epoch_dgi_loss))
     trainer.epoch_rec_loss = []
     trainer.epoch_dgi_loss = []
-    # if epoch % 5:
-    #     continue
+    if epoch % 5:
+        continue
     # eval model
     print("Evaluating on dev set...")
 
