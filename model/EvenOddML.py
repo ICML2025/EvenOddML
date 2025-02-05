@@ -8,11 +8,11 @@ class EvenOddML(nn.Module):
     def __init__(self, opt):
         super(EvenOddML, self).__init__()
         self.opt=opt
-        self.GNN = GNN(opt) 
+        self.GNN = GNN(opt) # fast mode(GNN), slow mode(GNN2)
         self.DGI = myDGI(opt) # Since pytorch is not support sparse matrix well
         self.dropout = opt["dropout"]
         
-
+        # degree one-hot features, Random 
         self.user_embedding = nn.Embedding(opt["number_user"], int(opt["feature_dim"]))
         self.item_embedding = nn.Embedding(opt["number_item"], int(opt["feature_dim"]))
         self.item_index = torch.arange(0, self.opt["number_item"], 1)
@@ -36,6 +36,5 @@ class EvenOddML(nn.Module):
         return out.view(-1)
 
     def forward(self, ufea, vfea, UV_adj, VU_adj, adj):
-        # print("abcd")
         learn_user,learn_item, h_u_final, h_v_final,alpha_ul, alpha_vl, Hu, Hv = self.GNN(ufea,vfea,UV_adj,VU_adj,adj)
         return learn_user,learn_item, h_u_final, h_v_final, self.GNN.user, self.GNN.item, alpha_ul, alpha_vl, Hu, Hv
