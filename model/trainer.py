@@ -112,6 +112,9 @@ class DGITrainer(Trainer):
     def feature_corruption(self):
         user_index = torch.randperm(self.opt["number_user"], device=self.model.user_index.device)
         item_index = torch.randperm(self.opt["number_item"], device=self.model.user_index.device)
+        # print(user_index.shape, item_index.shape)
+        # print(torch.max(user_index), torch.min(user_index))
+        # print(self.opt['number_user'])
         user_feature = self.model.user_embedding(user_index)
         item_feature = self.model.item_embedding(item_index)
         return user_feature, item_feature
@@ -185,7 +188,29 @@ class DGITrainer(Trainer):
             user_One, item_One, neg_item_One, User_index_One, Item_index_One, real_user_index_id_Two, fake_user_index_id_Two, real_item_index_id_Two, fake_item_index_id_Two  = self.unpack_batch_DGI(batch, self.opt[
                 "cuda"])
         else :
+        # print("kjewb")
             user_One, item_One, neg_item_One = self.unpack_batch(batch, self.opt["cuda"])
+        # print("abcd")
+#         if self.opt["number_user"] * self.opt["number_item"] > 10000000:
+#             real_user_index_id_Three = self.my_index_select(user_hidden_out, real_user_index_id_Two)
+#             real_item_index_id_Three = self.my_index_select(item_hidden_out, real_item_index_id_Two)
+#             fake_user_index_id_Three = self.my_index_select(fake_user_hidden_out, fake_user_index_id_Two)
+#             fake_item_index_id_Three = self.my_index_select(fake_item_hidden_out, fake_item_index_id_Two)
+
+#             real_user_index_feature_Two = self.my_index_select(user_hidden_out, User_index_One)
+#             real_item_index_feature_Two = self.my_index_select(item_hidden_out, Item_index_One)
+#             fake_user_index_feature_Two = self.my_index_select(fake_user_hidden_out, User_index_One)
+#             fake_item_index_feature_Two = self.my_index_select(fake_item_hidden_out, Item_index_One)
+
+#             Prob, Label = self.model.DGI(user_hidden_out, item_hidden_out, real_user_index_feature_Two, real_item_index_feature_Two, fake_user_index_feature_Two, fake_item_index_feature_Two,real_item_index_id_Three,real_user_index_id_Three,fake_item_index_id_Three,fake_user_index_id_Three)
+
+#             dgi_loss = self.criterion(Prob, Label)
+#             loss = (1 - self.opt["lambda"])*reconstruct_loss + self.opt["lambda"] * dgi_loss
+#             self.epoch_rec_loss.append((1 - self.opt["lambda"]) * reconstruct_loss.item())
+#             self.epoch_dgi_loss.append(self.opt["lambda"] * dgi_loss.item())
+
+        
+        # else :
         dgi_loss = self.model.DGI(user_layer, item_layer, corr_user_layer,
                                      corr_item_layer, UV, VU, CUV, CVU, user_One, item_One,neg_item_One, alpha_ul, alpha_vl, Hu, Hv,alpha_ul_corr, alpha_vl_corr, Hu_corr, Hv_corr , h_u_final ,h_v_final, h_negu_final, h_negv_final )
         
@@ -193,6 +218,13 @@ class DGITrainer(Trainer):
         item_feature_Two = self.my_index_select(self.h_v_final, item_One) 
         neg_item_feature_Two = self.my_index_select(self.h_v_final, neg_item_One)
         
+        # user_feature_Two = self.my_index_select(self.user_hidden_out, user_One)
+        # item_feature_Two = self.my_index_select(self.item_hidden_out, item_One) #user_hidden_out
+        # neg_item_feature_Two = self.my_index_select(self.item_hidden_out, neg_item_One)
+        # print(user_feature_Two.shape)
+        # print(item_feature_Two.shape)
+        # print(neg_item_feature_Two.shape)
+        # exit()
         pos_One = self.model.score(torch.cat((user_feature_Two, item_feature_Two), dim=1))
         neg_One = self.model.score(torch.cat((user_feature_Two, neg_item_feature_Two), dim=1))
         
@@ -211,7 +243,7 @@ class DGITrainer(Trainer):
             reconstruct_loss = self.HingeLoss(pos_One, neg_One)
             
         # dgi_loss = self.criterion(Prob, Label)
-        loss = (1 - self.opt["lambda"]) * reconstruct_loss + (self.opt["lambda"] ) * dgi_loss
+        loss = (1 - self.opt["lambda"]) * reconstruct_loss + (self.opt["lambda"]) * dgi_loss
         self.epoch_rec_loss.append((1 - self.opt["lambda"]) * reconstruct_loss.item())
         self.epoch_dgi_loss.append(self.opt["lambda"] * dgi_loss.item())
 
