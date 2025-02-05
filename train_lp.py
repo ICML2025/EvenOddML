@@ -1,3 +1,6 @@
+""" The following code is inspired by BiGI code 
+and was changed by the author for the following paper
+"""
 import os
 import sys
 from datetime import datetime
