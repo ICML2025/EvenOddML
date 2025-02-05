@@ -31,8 +31,17 @@ def Bernoulli(rate):
         return 1
     else :
         return 0
+    
+def get_neighbors(adj_dict, node, hops=1):
+    neighbors = set(adj_dict[node].keys())
+    for _ in range(hops - 1):
+        new_neighbors = set()
+        for n in neighbors:
+            new_neighbors.update(adj_dict[n].keys())
+        neighbors.update(new_neighbors)
+    return neighbors
 
-def struct_corruption(opt, original_dict, rate):
+def struct_corruption(opt, original_dict, rate,user_real_dict,item_real_dict):
     adj_dict = copy.deepcopy(original_dict)
     UV_edges = []
     VU_edges = []
@@ -41,15 +50,46 @@ def struct_corruption(opt, original_dict, rate):
     item_fake_dict = {}
     corruption_edges = int(opt["number_user"] * opt["number_item"] * rate)+1
     print("corruption_edges: ", corruption_edges)
-
+    
+## NODE DEGREE DIST   
+#     print(adj_dict)
+    user_degrees = np.array([len(user_real_dict[i]) for i in range(opt["number_user"])])
+    item_degrees = np.array([len(item_real_dict[j]) for j in range(opt["number_item"])])
+    user_probs = user_degrees / user_degrees.sum()
+    item_probs = item_degrees / item_degrees.sum()
     for k in range(corruption_edges):
-        i = random.randint(0, opt["number_user"]-1)
-        j = random.randint(0, opt["number_item"]-1)
+        i = np.random.choice(np.arange(opt["number_user"]), p=user_probs)
+        j = np.random.choice(np.arange(opt["number_item"]), p=item_probs)
 
         if adj_dict[i].get(j, "zxczxc") is "zxczxc":  # if 1 : adj is 0
             adj_dict[i][j] = 1
-        else :
+        else:
             del adj_dict[i][j]
+
+## LOCALITY AWARE
+#     for k in range(corruption_edges):
+#         i = random.randint(0, opt["number_user"]-1)
+#         neighbors = list(get_neighbors(adj_dict, i, hops=2))
+#         if neighbors:
+#             j = random.choice(neighbors)
+#         else:
+#             j = random.randint(0, opt["number_item"]-1)
+
+#         if adj_dict[i].get(j, "zxczxc") is "zxczxc":  # if 1 : adj is 0
+#             adj_dict[i][j] = 1
+#         else:
+#             del adj_dict[i][j]
+
+## BASIC
+
+#     for k in range(corruption_edges):
+#         i = random.randint(0, opt["number_user"]-1)
+#         j = random.randint(0, opt["number_item"]-1)
+
+#         if adj_dict[i].get(j, "zxczxc") is "zxczxc":  # if 1 : adj is 0
+#             adj_dict[i][j] = 1
+#         else :
+#             del adj_dict[i][j]
 
 
     for i in adj_dict.keys():
@@ -147,7 +187,7 @@ class GraphMaker(object):
         all_adj = sparse_mx_to_torch_sparse_tensor(all_adj)
 
         print("real graph loaded!")
-        corruption_UV_adj, corruption_VU_adj, fake_adj, user_fake_dict,item_fake_dict = struct_corruption(opt,real_adj,opt["struct_rate"])
+        corruption_UV_adj, corruption_VU_adj, fake_adj, user_fake_dict,item_fake_dict = struct_corruption(opt,real_adj,opt["struct_rate"],user_real_dict,item_real_dict)
 
         self.user_real_dict = user_real_dict
         self.user_fake_dict = user_fake_dict
