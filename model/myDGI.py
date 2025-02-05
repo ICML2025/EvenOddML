@@ -37,13 +37,13 @@ class Discriminator(nn.Module):
             score += s_bias
 
         return self.sigm(score)
-
+#####
+#####
 class myDGI(nn.Module):
     def __init__(self, opt):
         super(myDGI, self).__init__()
         self.opt = opt
         self.read = AvgReadout()
-        # self.att = GAT(opt)
         self.sigm = nn.Sigmoid()
         self.criterion = nn.BCELoss()
         self.lin = nn.Linear(opt["hidden_dim"] * 2, opt["hidden_dim"]).cuda()
@@ -106,47 +106,40 @@ class myDGI(nn.Module):
             item_neg.append(torch.index_select(item_layer[i], 0, neg_item_One).cuda())
             
         m1 =nn.Softmax(dim=0)
-        HU =  (Hu * alpha_ul)#.sum(dim=0)
-        HU = (self.mm(HU.view(1, -1)))
         
-        HV =  (Hv * alpha_vl)#.sum(dim=0)
-        # HV =  (Hv)#.mean(dim=0)
-        HV = (self.mm1(HV.view(1, -1)))
+
+        HU =  (Hu * alpha_ul).sum(dim=0)
         
+        HV =  (Hv * alpha_vl).sum(dim=0)
         
-        HUC =  (Huc * alpha_cul)#.sum(dim=0)
+        HUC =  (Huc * alpha_cul).sum(dim=0)
         
-        HUC = (self.mm(HUC.view(1, -1)))
+        HVC =  (Hvc * alpha_cvl).sum(dim=0)
         
-        HVC =  (Hvc * alpha_cvl)#.sum(dim=0)
-        HVC = self.mm1(HVC.view(1, -1))
-        
-        # print("HUCHUCHUCHUCHUC", HUC.shape)
-        
-        H_uv = (self.mm2(torch.cat((alpha_ul * Hu, alpha_vl * Hv), dim=1)))
-        H_uvc =(self.mm2(torch.cat((alpha_cul*Huc , alpha_cvl * Hvc), dim=1)))
+        H_uv = F.relu(self.mm2(torch.cat((alpha_ul * Hu, alpha_vl * Hv), dim=1)))
+        H_uvc = F.relu(self.mm2(torch.cat((alpha_cul*Huc , alpha_cvl * Hvc), dim=1)))
         
         alpha_uvl = m1(self.MLP_ul(nn.ReLU()(self.MLP_uvl(H_uv))))
         alpha_cuvl = m1(self.MLP_ul(nn.ReLU()(self.MLP_uvl(H_uvc))))
  
         #HCM - overall network      
-        H_UV = (H_uv * alpha_uvl).mean(dim=0)
-        H_UVC = (H_uvc * alpha_cuvl).mean(dim=0)
+        H_UV = (H_uv * alpha_uvl).sum(dim=0)
+        H_UVC = (H_uvc * alpha_cuvl).sum(dim=0)
                        
         
- 
+        
         ########################### LOSS CALCULATION ###############################
         # Global vectors (for user and item)
         dgi_loss = 0
         
         for i in range(0,self.opt["GNN"]):
 
-            pos_u = self.ulist[i]((Hu[i]),(user_layer[i]))
-            pos_v = self.ilist[i]((Hv[i]), (item_layer[i]))
 
-            neg_u = self.ulist[i]((Huc[i]),(user_layer[i]))
-            neg_v = self.ilist[i]((Hvc[i]),(item_layer[i]))
-
+            pos_u = self.ulist[i]((Hu[i]),(user_layer_l[i]))
+            pos_v = self.ilist[i]((Hv[i]), (item_layer_l[i]))
+ 
+            neg_u = self.ulist[i]((Huc[i]),(user_layer_l[i]))
+            neg_v = self.ilist[i]((Hvc[i]),(item_layer_l[i]))
 
             prob = torch.cat((pos_u,neg_u))
             label = torch.cat((torch.ones_like(pos_u), torch.zeros_like(neg_u)))
@@ -154,43 +147,38 @@ class myDGI(nn.Module):
             probv = torch.cat((pos_v,neg_v))
             labelv = torch.cat((torch.ones_like(pos_v), torch.zeros_like(neg_v)))
 
-            dgi_loss += self.criterion(prob, label) + self.criterion(probv,labelv)  
-            
-            dgi_loss/=(len(prob) + len(probv))
-            pos_U = self.discu1((HU), (user_layer[i])) 
-            neg_U = self.discu1((HUC), (user_layer[i]))
+            dgi_loss += self.criterion(prob, label) + self.criterion(probv,labelv)        
+
+
+            pos_U = self.discu1((HU), (user_layer_l[i])) 
+            neg_U = self.discu1((HUC), (user_layer_l[i])) 
 
             prob = torch.cat((pos_U, neg_U))
             label = torch.cat((torch.ones_like(pos_U), torch.zeros_like(neg_U)))
 
-            pos_V = self.discv1((HV), (item_layer[i]))
-            neg_V = self.discv1((HVC), (item_layer[i]))
-
+            pos_V = self.discv1((HV), (item_layer_l[i]))
+            neg_V = self.discv1((HVC), (item_layer_l[i]))
             
-
-
             probv = torch.cat((pos_V, neg_V))
             labelv = torch.cat((torch.ones_like(pos_V), torch.zeros_like(neg_V)))
 
             dgi_loss += ((self.criterion(prob, label) + self.criterion(probv,labelv)))#/251
-            
-            dgi_loss/=(len(prob) + len(probv))
-            
-            pos_UV = self.discu2((H_UV), (user_layer[i]))
-            neg_UV = self.discu2((H_UVC), (user_layer[i]))
+
+
+
+            pos_UV = self.discu2((H_UV), (user_layer_l[i]))
+            neg_UV = self.discu2((H_UVC), (user_layer_l[i]))
 
             prob = torch.cat((pos_UV, neg_UV))
             label = torch.cat((torch.ones_like(pos_UV), torch.zeros_like(neg_UV)))
 
-            pos_VU = self.discv2((H_UV), (item_layer[i]))
-            neg_VU = self.discv2((H_UVC), (item_layer[i]))
+            pos_VU = self.discv2((H_UV), (item_layer_l[i]))
+            neg_VU = self.discv2((H_UVC), (item_layer_l[i]))
 
             probv = torch.cat((pos_VU, neg_VU))
             labelv = torch.cat((torch.ones_like(pos_VU), torch.zeros_like(neg_VU)))
 
             dgi_loss +=  (self.criterion(prob, label) + self.criterion(probv,labelv))#/251
         
-            dgi_loss/=(len(prob) + len(probv))
-            
 
-        return dgi_loss#, h_u_final#, h_v_final, h_negv_final
+        return dgi_loss
